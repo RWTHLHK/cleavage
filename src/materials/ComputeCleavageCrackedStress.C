@@ -25,7 +25,7 @@ ComputeCleavageCrackedStress::validParams()
   params.addParam<std::string>("base_name", "The base name used to save the cracked stress");
   params.addRequiredParam<std::string>("uncracked_base_name",
                                        "The base name used to calculate the original stress");
-  params.addRequiredParam<Real>("d_crit",0.8,"critical damage that macroscopic fracture occurs");
+  params.addParam<Real>("d_crit",0.8,"critical damage that macroscopic fracture occurs");
   return params;
 }
 
