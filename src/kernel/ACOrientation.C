@@ -46,10 +46,48 @@ ACOrientation::betaNablaPsi()
 
 }
 
+RealVectorValue
+ACOrientation::computeDamageProjection(){
+  return _crysrot[_qp]*_grad_u[_qp];
+}
+
+RealVectorValue
+ACOrientation::computeDamageRotation(const RealVectorValue &pro_vec, Real &p_tot){
+  Real p1 = pro_vec(0);
+  Real p2 = pro_vec(1);
+  Real p3 = pro_vec(2);
+  p_tot = p1*p2 + p1*p3 + p2*p3;
+  //compute rotationof damage projection
+  Real rot1 = p3 * (_crysrot[_qp](0,0)+_crysrot[_qp](1,0)) + 
+              p2 * (_crysrot[_qp](0,0)+_crysrot[_qp](2,0)) +
+              p1 * (_crysrot[_qp](1,0)+_crysrot[_qp](2,0));
+
+  Real rot2 = p3 * (_crysrot[_qp](0,1)+_crysrot[_qp](1,1)) + 
+              p2 * (_crysrot[_qp](0,1)+_crysrot[_qp](2,1)) +
+              p1 * (_crysrot[_qp](1,1)+_crysrot[_qp](2,1));
+
+  Real rot3 = p3 * (_crysrot[_qp](0,2)+_crysrot[_qp](1,2)) + 
+              p2 * (_crysrot[_qp](0,2)+_crysrot[_qp](2,2)) +
+              p1 * (_crysrot[_qp](1,2)+_crysrot[_qp](2,2));
+
+  RealVectorValue rot_vec(rot1, rot2, rot3);
+  return rot_vec;
+}
+
+void 
+ACOrientation::computeDamageVec(RealVectorValue &pro_vec, RealVectorValue &rot_vec, Real &p_tot){
+  pro_vec = computeDamageProjection();
+  rot_vec = computeDamageRotation(pro_vec, p_tot);
+}
+
 Real
 ACOrientation::computeQpResidual()
 {
-  return (1 + _beta_penalty) * _grad_u[_qp] * kappaNablaLPsi() - betaNablaPsi();
+  RealVectorValue pro_vec(0,0,0);
+  RealVectorValue rot_vec(0,0,0);
+  Real p_tot = 0.0;
+  computeDamageVec(pro_vec,rot_vec, p_tot);
+  return _grad_u[_qp] * kappaNablaLPsi() + _beta_penalty * kappaNablaLPsi()*p_tot*rot_vec;
 }
 
 Real
@@ -57,6 +95,7 @@ ACOrientation::computeQpJacobian()
 {
   /// dsum is the derivative \f$ \frac\partial{\partial \eta} \left( \nabla
   /// (L\psi) \right) \f$
+  /// isotropic jacobian
   RealGradient dsum =
       (_dkappadop[_qp] * _L[_qp] + _kappa[_qp] * _dLdop[_qp]) * _phi[_j][_qp] * _grad_test[_i][_qp];
 
@@ -71,11 +110,16 @@ ACOrientation::computeQpJacobian()
 
     dsum += (_kappa[_qp] * dgradL + _dkappadop[_qp] * _phi[_j][_qp] * gradL()) * _test[_i][_qp];
   }
-  return (1 + _beta_penalty) * _grad_phi[_j][_qp] * kappaNablaLPsi() + _grad_u[_qp] * dsum -
-         _beta_penalty * _L[_qp] * _kappa[_qp] * 
-         ((_grad_u[_qp] * _crysrot[_qp].column(0)) *(_grad_phi[_j][_qp] * _crysrot[_qp].column(0))); 
-        //  +
-          // (_grad_u[_qp] * _crysrot[_qp].column(1)) *(_grad_phi[_j][_qp] * _crysrot[_qp].column(1)) +
-          // (_grad_u[_qp] * _crysrot[_qp].column(2)) *(_grad_phi[_j][_qp] * _crysrot[_qp].column(2)));
+  /// orientant jacobian
+  RealVectorValue pro_vec(0,0,0);
+  RealVectorValue rot_vec(0,0,0);
+  Real p_tot = 0.0;
+  computeDamageVec(pro_vec,rot_vec, p_tot);
+  // Real sigma1 = _beta_penalty * (rot_vec(1)*rot_vec(2) +  p_tot*)
+  return _grad_phi[_j][_qp] * kappaNablaLPsi() + _grad_u[_qp] * dsum;
+  // return (1 + _beta_penalty) * _grad_phi[_j][_qp] * kappaNablaLPsi() + _grad_u[_qp] * dsum -
+  //        _beta_penalty * _L[_qp] * _kappa[_qp] * 
+  //        ((_grad_u[_qp] * _crysrot[_qp].column(0)) *(_grad_phi[_j][_qp] * _crysrot[_qp].column(0))); 
+
 }
 

@@ -28,7 +28,9 @@ protected:
   const std::string _uncracked_base_name;
   /// term with beta penalty
   Real betaNablaPsi();
-
+  RealVectorValue computeDamageProjection();
+  RealVectorValue computeDamageRotation(const RealVectorValue &pro_vec, Real &p_tot);
+  void computeDamageVec(RealVectorValue &pro_vec, RealVectorValue &rot_vec, Real &p_tot);
   /// penalty for damage on planes not normal to the weak (favoured) cleavage
   /// plane (Clayton & Knap, 2015)
   const Real _beta_penalty;
