@@ -80,13 +80,13 @@
   [../]
   [./solid_x]
     type = PhaseFieldFractureMechanicsOffDiag
-    variable = disp_x
+    variable = ux
     component = 0
     c = c
   [../]
   [./solid_y]
     type = PhaseFieldFractureMechanicsOffDiag
-    variable = disp_y
+    variable = uy
     component = 1
     c = c
   [../]
